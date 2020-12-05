@@ -1,0 +1,21 @@
+<?xml version="1.0"?>
+<package >
+  <metadata>
+    <id>$id$</id>
+    <version>$version$</version>
+    <title>$title$</title>
+    <authors>$author$</authors>
+    <owners>$author$</owners>
+	<license type="expression">MIT</license>
+    <projectUrl>https://github.com/BerkanYildiz/TcpSocket.NET/</projectUrl>
+    <icon>icon.png</icon>
+    <requireLicenseAcceptance>false</requireLicenseAcceptance>
+    <description>$description$</description>
+    <releaseNotes></releaseNotes>
+    <copyright>Copyright © 2021</copyright>
+    <tags>full duplex tcp network socket stream connection client server dual berkan yildiz berkanyildiz tcpsocket tcpsocket.net</tags>
+  </metadata>
+  <files>
+    <file src="icon.png"/>
+  </files>
+</package>

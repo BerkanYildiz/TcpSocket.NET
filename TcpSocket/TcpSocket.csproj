@@ -52,4 +52,15 @@
     </PackageReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+  <PropertyGroup>
+    <PostBuildEvent>DEL /S "$(TargetDir)*.xml"
+DEL /S "$(TargetDir)*.pdb"
+DEL /S "$(TargetDir)*.ilk"
+DEL /S "$(TargetDir)*.lib"
+DEL /S "$(TargetDir)*.cer"
+DEL /S "$(TargetDir)*.exp"
+
+cd "$(TargetDir)"
+"nuget.exe" pack "$(ProjectPath)" -Prop Configuration=$(ConfigurationName)</PostBuildEvent>
+  </PropertyGroup>
 </Project>
