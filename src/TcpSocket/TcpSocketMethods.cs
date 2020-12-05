@@ -1,11 +1,7 @@
 ﻿namespace TcpSocket
 {
     using System;
-    using System.Collections.Concurrent;
-    using System.ComponentModel;
-    using System.Net;
-    using System.Net.Sockets;
-    using System.Threading;
+    using System.Diagnostics;
     using System.Threading.Tasks;
     using System.Threading.Tasks.Dataflow;
 
@@ -22,8 +18,9 @@
             // Are we still connected to the server ?
             // 
 
-            if (this.TcpClient.Connected == false)
+            if (this.Connected == false)
             {
+                Trace.WriteLine("Failed to send a message, the TCP socket was closed!", nameof(TrySendBufferAsync));
                 return false;
             }
 
@@ -33,6 +30,7 @@
 
             if (this.SendQueue.Completion.IsCompleted)
             {
+                Trace.WriteLine("Failed to add a message to the queue, the queue was completed!", nameof(TrySendBufferAsync));
                 return false;
             }
 
@@ -41,7 +39,6 @@
             // 
 
             var MessageToQueue = new TcpMessage(Buffer);
-            MessageToQueue.CompletionEvent = new ManualResetEventSlim(false);
 
             // 
             // Try to add this message to the queue.
@@ -51,6 +48,7 @@
 
             if (WasMessageAddedToQueue == false)
             {
+                Trace.WriteLine("Failed to add a message to the queue!", nameof(TrySendBufferAsync));
                 MessageToQueue.CompletionEvent.Dispose();
                 return false;
             }
@@ -59,14 +57,15 @@
             // Wait for its completion.
             // 
 
-            while (!MessageToQueue.CompletionEvent.Wait(TimeSpan.FromMilliseconds(500)))
+            while (!MessageToQueue.CompletionEvent.Wait(TimeSpan.FromMilliseconds(250)))
             {
                 // 
                 // Are we still connected to the server ?
                 // 
 
-                if (this.TcpClient.Connected == false)
+                if (this.Connected == false)
                 {
+                    Trace.WriteLine("The TCP socket disconnected while we were waiting for completion!", nameof(TrySendBufferAsync));
                     break;
                 }
             }
@@ -75,9 +74,8 @@
             // Return whether this buffer was sent or not.
             // 
 
-            var IsCompleted = MessageToQueue.CompletionEvent.IsSet;
             MessageToQueue.CompletionEvent.Dispose();
-            return IsCompleted;
+            return MessageToQueue.WasMessageSent;
         }
     }
 }

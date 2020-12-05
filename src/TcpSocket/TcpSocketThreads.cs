@@ -1,14 +1,10 @@
 ﻿namespace TcpSocket
 {
     using System;
-    using System.Collections.Concurrent;
-    using System.ComponentModel;
     using System.Diagnostics;
     using System.IO;
-    using System.Net;
     using System.Net.Sockets;
     using System.Threading;
-    using System.Threading.Tasks;
     using System.Threading.Tasks.Dataflow;
 
     using global::TcpSocket.Events;
@@ -46,6 +42,9 @@
         /// </summary>
         private void ReceiveThreadRoutine()
         {
+            var ThisThreadName = Thread.CurrentThread.Name;
+            Trace.WriteLine($"The {ThisThreadName} has started.", ThisThreadName);
+
             // 
             // Initialize our read-buffer.
             // 
@@ -56,7 +55,7 @@
             // While we are connected to the server...
             // 
 
-            while (this.TcpClient.Connected)
+            while (this.Connected)
             {
                 // 
                 // Retrieve the network stream.
@@ -78,6 +77,27 @@
                 }
 
                 // 
+                // Wait for data to read.
+                // 
+
+                #if SYNCHRONOUS_WAIT_FOR_DATA
+                while (NetworkStream.DataAvailable == false && this.Connected)
+                {
+                    Debug.WriteLine($"[*] DataAvailable: {NetworkStream.DataAvailable} / Connected: {this.Connected}");
+                    Thread.Sleep(1);
+                }
+                #endif
+
+                // 
+                // Are we still connected to the server after waiting for data ?
+                // 
+
+                if (this.Connected == false)
+                {
+                    break;
+                }
+
+                // 
                 // Receive data from the server.
                 // 
 
@@ -87,10 +107,20 @@
                 {
                     NumberOfBytesRead = NetworkStream.Read(ReadBuffer, 0, ReadBuffer.Length);
                 }
+                catch (ThreadAbortException)
+                {
+                    // 
+                    // The TcpSocket wants to stop receiving data and attempted to terminate this thread. 
+                    // Gracefully break the loop and return.
+                    // 
+
+                    return;
+                }
                 catch (IOException)
                 {
                     // 
-                    // The connection was forcefully closed while we were waiting for data.
+                    // The connection was forcefully closed while we were waiting for data,
+                    // or the socket was configured to throw an exception after a certain period of time (timeout).
                     // 
 
                     break;
@@ -122,6 +152,12 @@
                     }
                 }
             }
+
+            // 
+            // Debug.
+            // 
+
+            Trace.WriteLine($"The {ThisThreadName} is terminating.", ThisThreadName);
         }
 
         /// <summary>
@@ -129,6 +165,9 @@
         /// </summary>
         private void SendThreadRoutine()
         {
+            var ThisThreadName = Thread.CurrentThread.Name;
+            Trace.WriteLine($"The {ThisThreadName} has started.", ThisThreadName);
+
             // 
             // Initialize our write-buffer.
             // 
@@ -139,7 +178,7 @@
             // While we are connected to the server...
             // 
 
-            while (this.TcpClient.Connected)
+            while (this.Connected)
             {
                 // 
                 // Retrieve the network stream.
@@ -166,37 +205,30 @@
 
                 var MessageToSend = (TcpMessage) null;
 
-                while (MessageToSend == null)
+                try
                 {
                     MessageToSend = this.SendQueue.Receive();
-
+                }
+                catch (InvalidOperationException)
+                {
                     // 
-                    // Did we get a message yet ?
+                    // The queue was completed while we were waiting for a message.
+                    // We have nothing to send anymore, break the loop.
                     // 
 
-                    if (MessageToSend == null)
-                    {
-                        // 
-                        // Are we still connected to the server ?
-                        // 
-
-                        if (this.TcpClient.Connected == false)
-                        {
-                            break;
-                        }
-                    }
+                    break;
                 }
 
                 // 
                 // Are we still connected to the server ?
                 // 
 
-                if (this.TcpClient.Connected == false)
+                if (this.Connected == false)
                 {
+                    MessageToSend.WasMessageSent = false;
+                    MessageToSend.CompletionEvent.Set();
                     break;
                 }
-
-                Trace.Assert(MessageToSend != null, "MessageToSend was null after the BufferBlock wait loop");
 
                 // 
                 // Send data to the server.
@@ -209,12 +241,24 @@
                     NetworkStream.Write(MessageToSend.Buffer, 0, MessageToSend.Buffer.Length);
                     NumberOfBytesWritten = MessageToSend.Buffer.Length;
                 }
+                catch (ThreadAbortException)
+                {
+                    // 
+                    // The TcpSocket wants to stop sending data and attempted to terminate this thread. 
+                    // Gracefully break the loop and return.
+                    // 
+
+                    return;
+                }
                 catch (IOException)
                 {
                     // 
-                    // The connection was forcefully closed while we were sending data.
+                    // The connection was forcefully closed while we were sending data,
+                    // or the socket was configured to throw an exception after a certain period of time (timeout).
                     // 
 
+                    MessageToSend.WasMessageSent = false;
+                    MessageToSend.CompletionEvent.Set();
                     break;
                 }
 
@@ -224,19 +268,17 @@
 
                 if (NumberOfBytesWritten == 0)
                 {
+                    MessageToSend.WasMessageSent = false;
+                    MessageToSend.CompletionEvent.Set();
                     break;
                 }
 
                 // 
-                // If the queued message had a completion event, signal it.
+                // Signal that the queued message was processed.
                 // 
 
-                Trace.Assert(MessageToSend.CompletionEvent != null, "The completion event of the queued message was null");
-
-                if (MessageToSend.CompletionEvent != null)
-                {
-                    MessageToSend.CompletionEvent.Set();
-                }
+                MessageToSend.WasMessageSent = true;
+                MessageToSend.CompletionEvent.Set();
 
                 // 
                 // We've sent data to the server, invoke the handlers
@@ -257,10 +299,43 @@
             }
 
             // 
+            // Debug.
+            // 
+
+            Trace.WriteLine($"The {ThisThreadName} is terminating.", ThisThreadName);
+
+            // 
             // We stopped processing the send queue, block any attempts to add more messages to the queue.
             // 
 
-            this.SendQueue.Complete();
+            if (!this.SendQueue.Completion.IsCompleted)
+            {
+                this.SendQueue.Complete();
+            }
+
+            // 
+            // For the messages that are still in the queue,
+            // complete them.
+            // 
+
+            if (this.SendQueue.TryReceiveAll(out var Queue))
+            {
+                Trace.WriteLine($"Finalizing {Queue.Count} message(s) that were left in the queue after its completion.");
+
+                // 
+                // For each messages in the queue...
+                // 
+
+                foreach (var Entry in Queue)
+                {
+                    // 
+                    // Signal that the queued message has been processed.
+                    // 
+
+                    Entry.WasMessageSent = false;
+                    Entry.CompletionEvent.Set();
+                }
+            }
         }
     }
 }

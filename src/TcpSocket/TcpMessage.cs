@@ -22,12 +22,21 @@
         }
 
         /// <summary>
+        /// Gets a value indicating whether this message was sent to the server.
+        /// </summary>
+        public bool WasMessageSent
+        {
+            get;
+            internal set;
+        }
+
+        /// <summary>
         /// Gets or sets the event raised when this message will be completely sent to the server.
         /// </summary>
         public ManualResetEventSlim CompletionEvent
         {
             get;
-            set;
+            internal set;
         }
 
         /// <summary>
@@ -38,6 +47,8 @@
         {
             this.Buffer = Buffer;
             this.Time = DateTime.UtcNow;
+            this.WasMessageSent = false;
+            this.CompletionEvent = new ManualResetEventSlim(false);
         }
     }
 }
