@@ -26,16 +26,15 @@
             // Connect to the server.
             // 
 
-            var WasSocketConnected = await TcpSocket.TryConnectAsync("srv1.hwidspoofer.com", 6969);
-            Console.WriteLine($"[*] WasSocketConnected: {WasSocketConnected}");
+            await TcpSocket.TryConnectAsync("srv1.hwidspoofer.com", 6969);
 
             // 
             // Send a message to the server.
             // 
 
-            for (int I = 0; I < 50; I++)
+            for (var I = 0; I < 10; I++)
             {
-                await TcpSocket.TrySendBufferAsync(new byte[512]);
+                await TcpSocket.TrySendBufferAsync(new byte[32]);
             }
 
             // 

@@ -43,7 +43,7 @@
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\src\TcpSocket\TcpSocket.csproj">
+    <ProjectReference Include="..\TcpSocket\TcpSocket.csproj">
       <Project>{f9995dca-83de-454e-80a1-db86d23d117e}</Project>
       <Name>TcpSocket</Name>
     </ProjectReference>
