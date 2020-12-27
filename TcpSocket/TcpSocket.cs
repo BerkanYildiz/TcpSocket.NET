@@ -37,7 +37,7 @@
         }
 
         /// <summary>
-        /// Gets or sets a value indicating whether this instance is currently disconnecting.
+        /// Gets a value indicating whether this instance is currently disconnecting.
         /// </summary>
         public bool IsDisconnecting
         {
@@ -57,19 +57,21 @@
         /// <summary>
         /// Initializes a new instance of the <see cref="TcpSocket"/> class.
         /// </summary>
-        public TcpSocket()
+        /// <param name="SendBufferSize">The size of the buffer used to send data.</param>
+        /// <param name="ReceiveBufferSize">The size of the buffer used to receive data</param>
+        /// <param name="ReceiveTimeout">The time limit in milliseconds to receive a message before aborting.</param>
+        /// <param name="SendTimeout">The time limit in milliseconds to send a message before aborting.</param>
+        public TcpSocket(int SendBufferSize = 4096, int ReceiveBufferSize = 8192, int ReceiveTimeout = 30000, int SendTimeout = 30000)
         {
             // 
             // Initialize the TCP client.
             // 
 
             this.TcpClient = new TcpClient(AddressFamily.InterNetwork);
-            this.TcpClient.NoDelay = false;
-            this.TcpClient.SendBufferSize = 4096;
-            this.TcpClient.ReceiveBufferSize = 8192;
-            this.TcpClient.ReceiveTimeout = 0;
-            this.TcpClient.SendTimeout = 0;
-            this.TcpClient.ExclusiveAddressUse = false;
+            this.TcpClient.ReceiveBufferSize = ReceiveBufferSize;
+            this.TcpClient.SendBufferSize = SendBufferSize;
+            this.TcpClient.ReceiveTimeout = ReceiveTimeout;
+            this.TcpClient.SendTimeout = SendTimeout;
 
             // 
             // Initialize the sent messages queue.
@@ -77,7 +79,7 @@
 
             this.SendQueue = new BufferBlock<TcpMessage>(new DataflowBlockOptions
             {
-                BoundedCapacity = 100,
+                // BoundedCapacity = 100,
                 EnsureOrdered = true
             });
         }
