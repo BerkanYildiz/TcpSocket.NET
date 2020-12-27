@@ -28,6 +28,19 @@
             Console.WriteLine($"[*] MinThreads: {MinWorkerThreads} / {MinCompletionThreads}");
 
             // 
+            // Show the number of messages sent in the console title.
+            // 
+
+            Task.Run(async () =>
+            {
+                while (true)
+                {
+                    Console.Title = $".NET - TcpSocket - [NumberOfMessagesSent: {Interlocked.Read(ref NumberOfMessagesSent)}]";
+                    await Task.Delay(100);
+                }
+            });
+
+            // 
             // Initialize a new TCP socket.
             // 
 
@@ -51,7 +64,7 @@
 
                 var SpamTasks = new Task[20];
                 var ShouldStopTasks = false;
-                var BufferToSend = new byte[64];
+                var BufferToSend = new byte[32];
 
                 for (var I = 0; I < SpamTasks.Length; I++)
                 {
@@ -129,6 +142,8 @@
             // Trace.WriteLine($"[*] Received {EventArgs.NumberOfBytesRead} bytes from the server!");
         }
 
+        private static long NumberOfMessagesSent = 0;
+
         /// <summary>
         /// Called when the TCP socket has sent data to the server.
         /// </summary>
@@ -136,7 +151,8 @@
         /// <param name="EventArgs">The <see cref="TcpSocketBufferSentEventArgs"/> instance containing the event data.</param>
         private static void OnBufferSent(object Sender, TcpSocketBufferSentEventArgs EventArgs)
         {
-            // Trace.WriteLine($"[*] Sent {EventArgs.NumberOfBytesWritten} bytes to the server!");
+            Trace.WriteLine($"[*] Sent {EventArgs.NumberOfBytesWritten} bytes to the server!");
+            Interlocked.Increment(ref NumberOfMessagesSent);
         }
     }
 }

@@ -31,7 +31,7 @@
         }
 
         /// <summary>
-        /// Gets or sets the event raised when this message will be completely sent to the server.
+        /// Gets the event raised when this message will be completely sent to the server.
         /// </summary>
         public ManualResetEventSlim CompletionEvent
         {

@@ -64,9 +64,9 @@
             // 
 
             this.TcpClient = new TcpClient(AddressFamily.InterNetwork);
-            this.TcpClient.NoDelay = true;
-            this.TcpClient.SendBufferSize = 2048;
-            this.TcpClient.ReceiveBufferSize = 2048;
+            this.TcpClient.NoDelay = false;
+            this.TcpClient.SendBufferSize = 4096;
+            this.TcpClient.ReceiveBufferSize = 8192;
             this.TcpClient.ReceiveTimeout = 0;
             this.TcpClient.SendTimeout = 0;
             this.TcpClient.ExclusiveAddressUse = false;
@@ -172,7 +172,7 @@
                     }
                     catch (Exception)
                     {
-                        // ..
+                        // ...
                     }
                 }
             }

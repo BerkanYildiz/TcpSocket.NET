@@ -148,7 +148,7 @@
                     }
                     catch (Exception)
                     {
-                        // ..
+                        // ...
                     }
                 }
             }
@@ -157,6 +157,7 @@
             // Debug.
             // 
 
+            this.IsDisconnecting = true;
             Trace.WriteLine($"The {ThisThreadName} is terminating.", ThisThreadName);
         }
 
@@ -293,7 +294,7 @@
                     }
                     catch (Exception)
                     {
-                        // ..
+                        // ...
                     }
                 }
             }
@@ -302,6 +303,7 @@
             // Debug.
             // 
 
+            this.IsDisconnecting = true;
             Trace.WriteLine($"The {ThisThreadName} is terminating.", ThisThreadName);
 
             // 
