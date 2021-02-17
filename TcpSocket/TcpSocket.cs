@@ -61,7 +61,8 @@
         /// <param name="ReceiveBufferSize">The size of the buffer used to receive data</param>
         /// <param name="ReceiveTimeout">The time limit in milliseconds to receive a message before aborting.</param>
         /// <param name="SendTimeout">The time limit in milliseconds to send a message before aborting.</param>
-        public TcpSocket(int SendBufferSize = 4096, int ReceiveBufferSize = 8192, int ReceiveTimeout = 30000, int SendTimeout = 30000)
+        /// <param name="NoDelay">Whether to immediately send the network data or wait for the buffer to fill a bit.</param>
+        public TcpSocket(int SendBufferSize = 4096, int ReceiveBufferSize = 8192, int ReceiveTimeout = 30000, int SendTimeout = 30000, bool NoDelay = false)
         {
             // 
             // Initialize the TCP client.
@@ -72,6 +73,7 @@
             this.TcpClient.SendBufferSize = SendBufferSize;
             this.TcpClient.ReceiveTimeout = ReceiveTimeout;
             this.TcpClient.SendTimeout = SendTimeout;
+            this.TcpClient.NoDelay = NoDelay;
 
             // 
             // Initialize the sent messages queue.
