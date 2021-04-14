@@ -1,11 +1,12 @@
 ﻿namespace TcpSocket
 {
     using System;
-    using System.Diagnostics;
     using System.IO;
     using System.Net.Sockets;
     using System.Threading;
     using System.Threading.Tasks.Dataflow;
+
+    using Microsoft.Extensions.Logging;
 
     using global::TcpSocket.Events;
 
@@ -43,7 +44,7 @@
         private void ReceiveThreadRoutine()
         {
             var ThisThreadName = Thread.CurrentThread.Name;
-            Trace.WriteLine($"The {ThisThreadName} has started.", ThisThreadName);
+            this.Logger?.Log(LogLevel.Debug, $"The start routine of the '{ThisThreadName}' thread is executing.");
 
             // 
             // Initialize our read-buffer.
@@ -55,7 +56,7 @@
             // While we are connected to the server...
             // 
 
-            while (this.Connected)
+            while (this.IsConnected)
             {
                 // 
                 // Retrieve the network stream.
@@ -81,9 +82,9 @@
                 // 
 
                 #if SYNCHRONOUS_WAIT_FOR_DATA
-                while (NetworkStream.DataAvailable == false && this.Connected)
+                while (NetworkStream.DataAvailable == false && this.IsConnected)
                 {
-                    Debug.WriteLine($"[*] DataAvailable: {NetworkStream.DataAvailable} / Connected: {this.Connected}");
+                    Debug.WriteLine($"[*] DataAvailable: {NetworkStream.DataAvailable} / Connected: {this.IsConnected}");
                     Thread.Sleep(1);
                 }
                 #endif
@@ -92,7 +93,7 @@
                 // Are we still connected to the server after waiting for data ?
                 // 
 
-                if (this.Connected == false)
+                if (this.IsConnected == false)
                 {
                     break;
                 }
@@ -158,7 +159,7 @@
             // 
 
             this.IsDisconnecting = true;
-            Trace.WriteLine($"The {ThisThreadName} is terminating.", ThisThreadName);
+            this.Logger?.Log(LogLevel.Debug, $"The '{ThisThreadName}' thread is terminating.");
         }
 
         /// <summary>
@@ -167,7 +168,7 @@
         private void SendThreadRoutine()
         {
             var ThisThreadName = Thread.CurrentThread.Name;
-            Trace.WriteLine($"The {ThisThreadName} has started.", ThisThreadName);
+            this.Logger?.Log(LogLevel.Debug, $"The start routine of the '{ThisThreadName}' thread is executing.");
 
             // 
             // Initialize our write-buffer.
@@ -179,7 +180,7 @@
             // While we are connected to the server...
             // 
 
-            while (this.Connected)
+            while (this.IsConnected)
             {
                 // 
                 // Retrieve the network stream.
@@ -224,7 +225,7 @@
                 // Are we still connected to the server ?
                 // 
 
-                if (this.Connected == false)
+                if (this.IsConnected == false)
                 {
                     MessageToSend.WasMessageSent = false;
                     MessageToSend.CompletionEvent.Set();
@@ -304,7 +305,7 @@
             // 
 
             this.IsDisconnecting = true;
-            Trace.WriteLine($"The {ThisThreadName} is terminating.", ThisThreadName);
+            this.Logger?.Log(LogLevel.Debug, $"The '{ThisThreadName}' thread is terminating.");
 
             // 
             // We stopped processing the send queue, block any attempts to add more messages to the queue.
@@ -322,7 +323,7 @@
 
             if (this.SendQueue.TryReceiveAll(out var Queue))
             {
-                Trace.WriteLine($"Finalizing {Queue.Count} message(s) that were left in the queue after its completion.");
+                this.Logger?.Log(LogLevel.Information, $"Finalizing {Queue.Count} message(s) that were left in the queue after its completion.");
 
                 // 
                 // For each messages in the queue...

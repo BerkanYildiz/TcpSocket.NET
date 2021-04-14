@@ -5,6 +5,8 @@
     using System.Threading.Tasks;
     using System.Threading.Tasks.Dataflow;
 
+    using Microsoft.Extensions.Logging;
+
     public partial class TcpSocket
     {
         /// <summary>
@@ -15,12 +17,25 @@
         public async Task<bool> TrySendBufferAsync(byte[] Buffer)
         {
             // 
+            // Verify the passed parameter(s).
+            // 
+
+            if (Buffer == null ||
+                Buffer.Length == 0)
+            {
+                this.Logger?.Log(LogLevel.Error, $"The buffer is null or empty.");
+                throw new ArgumentNullException(nameof(Buffer), "The buffer is null or empty.");
+            }
+
+            this.Logger?.Log(LogLevel.Debug, $"The TcpSocket::TrySendBufferAsync(...) function has been executed. [Buffer: {Buffer.Length}]");
+
+            // 
             // Are we still connected to the server ?
             // 
 
-            if (this.Connected == false)
+            if (this.IsConnected == false)
             {
-                Trace.WriteLine("Failed to send a message, the TCP socket was closed!", nameof(TrySendBufferAsync));
+                this.Logger?.Log(LogLevel.Error, $"Failed to send a message, the TCP socket was closed.");
                 return false;
             }
 
@@ -30,7 +45,7 @@
 
             if (this.SendQueue.Completion.IsCompleted)
             {
-                Trace.WriteLine("Failed to add a message to the queue, the queue was completed!", nameof(TrySendBufferAsync));
+                this.Logger?.Log(LogLevel.Error, $"Failed to add a message to the queue, the queue was completed.");
                 return false;
             }
 
@@ -44,11 +59,13 @@
             // Try to add this message to the queue.
             // 
 
+            var Stopwatch = System.Diagnostics.Stopwatch.StartNew();
             var WasMessageAddedToQueue = await this.SendQueue.SendAsync(MessageToQueue);
 
             if (WasMessageAddedToQueue == false)
             {
-                Trace.WriteLine("Failed to add a message to the queue!", nameof(TrySendBufferAsync));
+                this.Logger?.Log(LogLevel.Error, $"Failed to add a message to the queue. [MessageToQueue: {MessageToQueue}]");
+                Stopwatch.Stop();
                 MessageToQueue.CompletionEvent.Dispose();
                 return false;
             }
@@ -63,12 +80,19 @@
                 // Are we still connected to the server ?
                 // 
 
-                if (this.Connected == false)
+                if (this.IsConnected == false)
                 {
-                    Trace.WriteLine("The TCP socket disconnected while we were waiting for completion!", nameof(TrySendBufferAsync));
+                    this.Logger?.Log(LogLevel.Warning, $"The TCP socket disconnected while we were waiting for completion. [MessageToQueue: {MessageToQueue}]");
                     break;
                 }
             }
+
+            Stopwatch.Stop();
+
+            if (MessageToQueue.WasMessageSent)
+                this.Logger?.Log(LogLevel.Information, $"The TCP message has been sent in {Stopwatch.Elapsed.TotalSeconds:N2} second(s). [MessageToQueue: {MessageToQueue}]");
+            else
+                this.Logger?.Log(LogLevel.Error, $"The TCP message has not been sent and its completion has been aborted after {Stopwatch.Elapsed.TotalSeconds:N2} second(s). [MessageToQueue: {MessageToQueue}]");
 
             // 
             // Return whether this buffer was sent or not.

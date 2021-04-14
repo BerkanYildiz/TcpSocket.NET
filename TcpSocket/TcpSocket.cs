@@ -1,11 +1,14 @@
 ﻿namespace TcpSocket
 {
     using System;
+    using System.Diagnostics;
     using System.Net;
     using System.Net.Sockets;
     using System.Threading;
     using System.Threading.Tasks;
     using System.Threading.Tasks.Dataflow;
+
+    using Microsoft.Extensions.Logging;
 
     using global::TcpSocket.Events;
 
@@ -20,10 +23,18 @@
         }
 
         /// <summary>
+        /// Gets the logger.
+        /// </summary>
+        private ILogger Logger
+        {
+            get;
+        }
+
+        /// <summary>
         /// Gets a value indicating whether this <see cref="TcpSocket"/>
         /// was connected to the server during the last operation.
         /// </summary>
-        public bool Connected
+        public bool IsConnected
         {
             get
             {
@@ -62,18 +73,21 @@
         /// <param name="ReceiveTimeout">The time limit in milliseconds to receive a message before aborting.</param>
         /// <param name="SendTimeout">The time limit in milliseconds to send a message before aborting.</param>
         /// <param name="NoDelay">Whether to immediately send the network data or wait for the buffer to fill a bit.</param>
-        public TcpSocket(int SendBufferSize = 4096, int ReceiveBufferSize = 8192, int ReceiveTimeout = 30000, int SendTimeout = 30000, bool NoDelay = false)
+        /// <param name="Logger">The logging handler instance used to print debug messages and traces.</param>
+        public TcpSocket(int SendBufferSize = 4096, int ReceiveBufferSize = 8192, int ReceiveTimeout = 0, int SendTimeout = 0, bool NoDelay = false, ILogger Logger = null)
         {
             // 
             // Initialize the TCP client.
             // 
 
-            this.TcpClient = new TcpClient(AddressFamily.InterNetwork);
-            this.TcpClient.ReceiveBufferSize = ReceiveBufferSize;
-            this.TcpClient.SendBufferSize = SendBufferSize;
-            this.TcpClient.ReceiveTimeout = ReceiveTimeout;
-            this.TcpClient.SendTimeout = SendTimeout;
-            this.TcpClient.NoDelay = NoDelay;
+            this.TcpClient = new TcpClient(AddressFamily.InterNetwork)
+            {
+                ReceiveBufferSize = ReceiveBufferSize,
+                SendBufferSize = SendBufferSize,
+                ReceiveTimeout = ReceiveTimeout,
+                SendTimeout = SendTimeout,
+                NoDelay = NoDelay,
+            };
 
             // 
             // Initialize the sent messages queue.
@@ -81,9 +95,15 @@
 
             this.SendQueue = new BufferBlock<TcpMessage>(new DataflowBlockOptions
             {
-                // BoundedCapacity = 100,
-                EnsureOrdered = true
+                EnsureOrdered = true,
             });
+
+            // 
+            // Initialize the logging handler.
+            // 
+
+            this.Logger = Logger;
+            this.Logger?.Log(LogLevel.Debug, "The TcpSocket::TcpSocket(...) function has been executed.");
         }
 
         /// <summary>
@@ -94,17 +114,21 @@
         /// <returns>whether we successfully connected or not.</returns>
         public async Task<bool> TryConnectAsync(string Hostname, int Port)
         {
+            this.Logger?.Log(LogLevel.Debug, "The TcpSocket::TryConnectAsync(...) function has been executed.");
+
             // 
             // Verify the passed parameters.
             // 
-            
+
             if (string.IsNullOrEmpty(Hostname))
             {
-                throw new ArgumentNullException(nameof(Hostname), "The hostname must not be null or empty.");
+                this.Logger?.Log(LogLevel.Error, "The hostname is null or empty.");
+                throw new ArgumentNullException(nameof(Hostname), "The hostname is null or empty.");
             }
 
             if (Port <= IPEndPoint.MinPort || Port > IPEndPoint.MaxPort)
             {
+                this.Logger?.Log(LogLevel.Error, $"The port number is out of range. [Port: {Port}]");
                 throw new ArgumentException("The port number must be between 0 and 65535.", nameof(Port));
             }
 
@@ -114,12 +138,16 @@
 
             if (this.TcpClient.Connected)
             {
+                this.Logger?.Log(LogLevel.Warning, $"The TcpSocket is already connected to a remote endpoint.");
                 throw new InvalidOperationException("The TcpSocket is already connected to a remote endpoint.");
             }
 
             // 
             // Asynchronously attempt to connect to the server.
             // 
+
+            this.Logger?.Log(LogLevel.Information, $"Attempting to connect to {Hostname}:{Port}.");
+            var Stopwatch = System.Diagnostics.Stopwatch.StartNew();
 
             try
             {
@@ -131,6 +159,13 @@
                 // The client has failed to connect to the server.
                 // 
             }
+
+            Stopwatch.Stop();
+
+            if (this.IsConnected)
+                this.Logger?.Log(LogLevel.Information, $"The connection attempt took {Stopwatch.Elapsed.TotalSeconds:N2} second(s) to complete.");
+            else
+                this.Logger?.Log(LogLevel.Warning, $"The connection attempt took {Stopwatch.Elapsed.TotalSeconds:N2} second(s) to complete but failed to succeed.");
 
             // 
             // If we are connected to the server, start the receive/send threads.
@@ -160,8 +195,13 @@
                 // Start both threads.
                 // 
 
+                this.Logger?.Log(LogLevel.Debug, $"Trying to start a new thread named '{this.ReceiveThread.Name}'...");
                 this.ReceiveThread.Start();
+                this.Logger?.Log(LogLevel.Debug, $"The thread named '{this.ReceiveThread.Name}' has started.");
+
+                this.Logger?.Log(LogLevel.Debug, $"Trying to start a new thread named '{this.SendThread.Name}'...");
                 this.SendThread.Start();
+                this.Logger?.Log(LogLevel.Debug, $"The thread named '{this.SendThread.Name}' has started.");
 
                 // 
                 // We've connected to the server, invoke the handlers
@@ -194,6 +234,8 @@
         /// </summary>
         public void Dispose()
         {
+            this.Logger?.Log(LogLevel.Information, $"Disposing the TcpClient and disconnecting from the server.");
+
             // 
             // Was this instance already disposed ?
             // 
@@ -215,7 +257,7 @@
             // Disconnect the TcpClient.
             // 
 
-            if (this.Connected || this.TcpClient?.Client?.RemoteEndPoint != null)
+            if (this.IsConnected || this.TcpClient?.Client?.RemoteEndPoint != null)
             {
                 try
                 {

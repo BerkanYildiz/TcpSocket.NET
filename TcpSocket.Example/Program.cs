@@ -9,6 +9,8 @@
     using global::TcpSocket;
     using global::TcpSocket.Events;
 
+    using Microsoft.Extensions.Logging;
+
     internal static class Program
     {
         /// <summary>
@@ -41,10 +43,21 @@
             });
 
             // 
+            // Initialize the logging system.
+            // 
+
+            var Logger = LoggerFactory.Create(Builder =>
+            {
+                Builder.SetMinimumLevel(LogLevel.Trace);
+                Builder.AddConsole();
+                Builder.AddDebug();
+            }).CreateLogger<TcpSocket>();
+
+            // 
             // Initialize a new TCP socket.
             // 
 
-            var TcpSocket = new TcpSocket();
+            var TcpSocket = new TcpSocket(ReceiveTimeout: 60000, Logger: Logger);
             TcpSocket.OnSocketConnected += OnSocketConnected;
             TcpSocket.OnSocketDisconnected += OnSocketDisconnected;
             TcpSocket.OnBufferReceived += OnBufferReceived;
@@ -62,7 +75,7 @@
                 // Asynchronously spam the server.
                 // 
 
-                var SpamTasks = new Task[20];
+                var SpamTasks = new Task[1];
                 var ShouldStopTasks = false;
                 var BufferToSend = new byte[32];
 
@@ -70,7 +83,7 @@
                 {
                     SpamTasks[I] = Task.Run(async () =>
                     {
-                        while (TcpSocket.Connected && !ShouldStopTasks)
+                        while (TcpSocket.IsConnected && !ShouldStopTasks)
                         {
                             var HasSentMessage = await TcpSocket.TrySendBufferAsync(BufferToSend);
 
