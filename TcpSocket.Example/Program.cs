@@ -6,10 +6,10 @@
     using System.Threading;
     using System.Threading.Tasks;
 
+    using Microsoft.Extensions.Logging;
+
     using global::TcpSocket;
     using global::TcpSocket.Events;
-
-    using Microsoft.Extensions.Logging;
 
     internal static class Program
     {
@@ -27,21 +27,6 @@
             ThreadPool.SetMinThreads(MinWorkerThreads * 3, MinCompletionThreads);
             ThreadPool.GetMinThreads(out MinWorkerThreads, out MinCompletionThreads);
 
-            Console.WriteLine($"[*] MinThreads: {MinWorkerThreads} / {MinCompletionThreads}");
-
-            // 
-            // Show the number of messages sent in the console title.
-            // 
-
-            Task.Run(async () =>
-            {
-                while (true)
-                {
-                    Console.Title = $".NET - TcpSocket - [NumberOfMessagesSent: {Interlocked.Read(ref NumberOfMessagesSent)}]";
-                    await Task.Delay(100);
-                }
-            });
-
             // 
             // Initialize the logging system.
             // 
@@ -57,7 +42,7 @@
             // Initialize a new TCP socket.
             // 
 
-            var TcpSocket = new TcpSocket(ReceiveTimeout: 60000, Logger: Logger);
+            var TcpSocket = new TcpSocket(Logger: Logger);
             TcpSocket.OnSocketConnected += OnSocketConnected;
             TcpSocket.OnSocketDisconnected += OnSocketDisconnected;
             TcpSocket.OnBufferReceived += OnBufferReceived;
@@ -69,7 +54,7 @@
                 // Connect to the server.
                 // 
 
-                await TcpSocket.TryConnectAsync("localhost", 6969);
+                await TcpSocket.TryConnectAsync("localhost", 6970);
 
                 // 
                 // Asynchronously spam the server.
@@ -77,7 +62,7 @@
 
                 var SpamTasks = new Task[1];
                 var ShouldStopTasks = false;
-                var BufferToSend = new byte[32];
+                var BufferToSend = new byte[128];
 
                 for (var I = 0; I < SpamTasks.Length; I++)
                 {
@@ -89,8 +74,10 @@
 
                             if (HasSentMessage == false)
                             {
-                                Console.WriteLine($"[*] Failed to send a message during the while loop.");
+                                Logger.LogError($"Failed to send a message during the while loop.");
                             }
+
+                            await Task.Delay(250);
                         }
                     });
                 }
@@ -107,12 +94,8 @@
 
                 ShouldStopTasks = true;
                 Task.WaitAll(SpamTasks);
-                Console.WriteLine("[*] Every tasks were terminated, disposing the TCP socket...");
+                Logger.LogTrace("Every tasks were terminated, disposing the TCP socket...");
             }
-
-            Console.ForegroundColor = ConsoleColor.Yellow;
-            Console.WriteLine("[*] Quitting...");
-            Console.ResetColor();
 
             await Task.Delay(1500);
         }
@@ -152,7 +135,7 @@
         /// <param name="EventArgs">The <see cref="TcpSocketBufferReceivedEventArgs"/> instance containing the event data.</param>
         private static void OnBufferReceived(object Sender, TcpSocketBufferReceivedEventArgs EventArgs)
         {
-            // Trace.WriteLine($"[*] Received {EventArgs.NumberOfBytesRead} bytes from the server!");
+            Trace.WriteLine($"[*] Received {EventArgs.NumberOfBytesRead} bytes from the server!");
         }
 
         private static long NumberOfMessagesSent = 0;
@@ -166,6 +149,7 @@
         {
             Trace.WriteLine($"[*] Sent {EventArgs.NumberOfBytesWritten} bytes to the server!");
             Interlocked.Increment(ref NumberOfMessagesSent);
+            Console.Title = $".NET - TcpSocket - [NumberOfMessagesSent: {Interlocked.Read(ref NumberOfMessagesSent)}]";
         }
     }
 }

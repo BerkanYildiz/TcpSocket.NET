@@ -1,12 +1,10 @@
 ﻿namespace TcpSocket
 {
     using System;
-    using System.Diagnostics;
     using System.Net;
     using System.Net.Sockets;
     using System.Threading;
     using System.Threading.Tasks;
-    using System.Threading.Tasks.Dataflow;
 
     using Microsoft.Extensions.Logging;
 
@@ -17,7 +15,7 @@
         /// <summary>
         /// Gets the TCP client.
         /// </summary>
-        private TcpClient TcpClient
+        public TcpClient TcpClient
         {
             get;
         }
@@ -25,7 +23,7 @@
         /// <summary>
         /// Gets the logger.
         /// </summary>
-        private ILogger Logger
+        public ILogger Logger
         {
             get;
         }
@@ -68,13 +66,13 @@
         /// <summary>
         /// Initializes a new instance of the <see cref="TcpSocket"/> class.
         /// </summary>
-        /// <param name="SendBufferSize">The size of the buffer used to send data.</param>
         /// <param name="ReceiveBufferSize">The size of the buffer used to receive data</param>
+        /// <param name="SendBufferSize">The size of the buffer used to send data.</param>
         /// <param name="ReceiveTimeout">The time limit in milliseconds to receive a message before aborting.</param>
         /// <param name="SendTimeout">The time limit in milliseconds to send a message before aborting.</param>
         /// <param name="NoDelay">Whether to immediately send the network data or wait for the buffer to fill a bit.</param>
         /// <param name="Logger">The logging handler instance used to print debug messages and traces.</param>
-        public TcpSocket(int SendBufferSize = 4096, int ReceiveBufferSize = 8192, int ReceiveTimeout = 0, int SendTimeout = 0, bool NoDelay = false, ILogger Logger = null)
+        public TcpSocket(int ReceiveBufferSize = 8192, int SendBufferSize = 8192, int ReceiveTimeout = 0, int SendTimeout = 0, bool NoDelay = false, ILogger Logger = null)
         {
             // 
             // Initialize the TCP client.
@@ -90,20 +88,11 @@
             };
 
             // 
-            // Initialize the sent messages queue.
-            // 
-
-            this.SendQueue = new BufferBlock<TcpMessage>(new DataflowBlockOptions
-            {
-                EnsureOrdered = true,
-            });
-
-            // 
             // Initialize the logging handler.
             // 
 
             this.Logger = Logger;
-            this.Logger?.Log(LogLevel.Debug, "The TcpSocket::TcpSocket(...) function has been executed.");
+            this.Logger?.Log(LogLevel.Trace, "The TcpSocket::TcpSocket(...) function has been executed.");
         }
 
         /// <summary>
@@ -114,7 +103,7 @@
         /// <returns>whether we successfully connected or not.</returns>
         public async Task<bool> TryConnectAsync(string Hostname, int Port)
         {
-            this.Logger?.Log(LogLevel.Debug, "The TcpSocket::TryConnectAsync(...) function has been executed.");
+            this.Logger?.Log(LogLevel.Trace, "The TcpSocket::TryConnectAsync(...) function has been executed.");
 
             // 
             // Verify the passed parameters.
@@ -183,25 +172,12 @@
                 this.ReceiveThread.IsBackground = true;
 
                 // 
-                // Setup the thread that sends data to the server.
-                // 
-
-                this.SendThread = new Thread(this.SendThreadRoutine);
-                this.SendThread.Name = "NetworkThread-Send";
-                this.SendThread.Priority = ThreadPriority.AboveNormal;
-                this.SendThread.IsBackground = true;
-
-                // 
-                // Start both threads.
+                // Start the thread.
                 // 
 
                 this.Logger?.Log(LogLevel.Debug, $"Trying to start a new thread named '{this.ReceiveThread.Name}'...");
                 this.ReceiveThread.Start();
                 this.Logger?.Log(LogLevel.Debug, $"The thread named '{this.ReceiveThread.Name}' has started.");
-
-                this.Logger?.Log(LogLevel.Debug, $"Trying to start a new thread named '{this.SendThread.Name}'...");
-                this.SendThread.Start();
-                this.Logger?.Log(LogLevel.Debug, $"The thread named '{this.SendThread.Name}' has started.");
 
                 // 
                 // We've connected to the server, invoke the handlers
@@ -262,6 +238,7 @@
                 try
                 {
                     this.TcpClient?.Client?.Disconnect(false);
+                    this.TcpClient?.Close();
                 }
                 catch (Exception)
                 {
@@ -273,85 +250,25 @@
             }
 
             // 
-            // Mark the queue as completed.
+            // If the thread is still running...
             // 
 
-            this.SendQueue?.Complete();
-
-            // 
-            // If one or both threads are running...
-            // 
-
-            if ((this.ReceiveThread?.IsAlive ?? false) || (this.SendThread?.IsAlive ?? false))
+            if (this.ReceiveThread?.IsAlive ?? false)
             {
                 // 
-                // Asynchronously terminate both receive/send threads.
+                // Wait for it to terminate.
                 // 
 
-                Task.Run(async () =>
+                try
+                {
+                    this.ReceiveThread.Join();
+                }
+                catch (ThreadStateException)
                 {
                     // 
-                    // Wait for 2 second(s) in case the threads terminate themselves.
+                    // The thread was already terminating.
                     // 
-
-                    var WaitDuration = TimeSpan.FromSeconds(2);
-                    var WaitEndTime = DateTime.UtcNow.Add(WaitDuration);
-
-                    while (DateTime.UtcNow < WaitEndTime)
-                    {
-                        // 
-                        // Are both threads stopped yet ?
-                        // 
-
-                        if ((this.ReceiveThread?.IsAlive ?? true) || (this.SendThread?.IsAlive ?? true))
-                        {
-                            return;
-                        }
-
-                        // 
-                        // Well, we waiting then..
-                        // 
-
-                        await Task.Delay(50);
-                    }
-
-                    // 
-                    // Terminate the receive thread.
-                    // 
-
-                    if (this.ReceiveThread?.IsAlive ?? false)
-                    {
-                        try
-                        {
-                            this.ReceiveThread.Abort();
-                        }
-                        catch (ThreadStateException)
-                        {
-                            // 
-                            // The thread was already starting to die.
-                            // 
-                        }
-                    }
-
-                    // 
-                    // Terminate the send thread.
-                    // 
-
-                    if (this.SendThread?.IsAlive ?? false)
-                    {
-                        try
-                        {
-                            this.SendThread.Abort();
-                        }
-                        catch (ThreadStateException)
-                        {
-                            // 
-                            // The thread was already starting to die.
-                            // 
-                        }
-                    }
-
-                }).Wait();
+                }
             }
 
             // 

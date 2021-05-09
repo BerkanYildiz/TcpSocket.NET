@@ -3,9 +3,9 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 16
 VisualStudioVersion = 16.0.30717.126
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TcpSocket", "TcpSocket\TcpSocket.csproj", "{F9995DCA-83DE-454E-80A1-DB86D23D117E}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "TcpSocket", "TcpSocket\TcpSocket.csproj", "{F9995DCA-83DE-454E-80A1-DB86D23D117E}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TcpSocket.Example", "TcpSocket.Example\TcpSocket.Example.csproj", "{B74027C6-57C6-41D1-AD2F-97D0BA19B6D7}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "TcpSocket.Example", "TcpSocket.Example\TcpSocket.Example.csproj", "{B74027C6-57C6-41D1-AD2F-97D0BA19B6D7}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
