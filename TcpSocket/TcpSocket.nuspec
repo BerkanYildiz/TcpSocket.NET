@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<package >
+  <metadata>
+    <id>$id$</id>
+    <version>1.1.2.0</version>
+    <title>TcpSocket</title>
+    <authors>Berkan YILDIZ</authors>
+    <requireLicenseAcceptance>false</requireLicenseAcceptance>
+    <license type="expression">MIT</license>
+    <projectUrl>https://github.com/BerkanYildiz/TcpSocket.NET</projectUrl>
+    <description>Asynchronous, full-duplex, and lightweight TCP socket/client for .NET.</description>
+    <releaseNotes>Downgrade from .NET 5.0 to .NET Framework 4.8 </releaseNotes>
+    <copyright>Copyright ©  2021</copyright>
+    <tags>Tag1 Tag2</tags>
+  </metadata>
+</package>
