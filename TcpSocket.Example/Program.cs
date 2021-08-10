@@ -34,8 +34,8 @@
             var Logger = LoggerFactory.Create(Builder =>
             {
                 Builder.SetMinimumLevel(LogLevel.Trace);
-                Builder.AddConsole();
-                Builder.AddDebug();
+                //Builder.AddConsole();
+                //Builder.AddDebug();
             }).CreateLogger<TcpSocket>();
 
             // 
