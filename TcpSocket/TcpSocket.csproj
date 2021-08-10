@@ -1,70 +1,56 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
-<Project ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
-  <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
   <PropertyGroup>
-    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
-    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
-    <ProjectGuid>{5CA720C0-BCC0-4406-808E-D94308CBA15B}</ProjectGuid>
     <OutputType>Library</OutputType>
-    <AppDesignerFolder>Properties</AppDesignerFolder>
+    <TargetFramework>net5.0</TargetFramework>
     <RootNamespace>TcpSocket</RootNamespace>
-    <AssemblyName>TcpSocket</AssemblyName>
-    <TargetFrameworkVersion>v4.8</TargetFrameworkVersion>
-    <FileAlignment>512</FileAlignment>
-    <Deterministic>true</Deterministic>
+    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+    <Version>1.1.1.0</Version>
+    <Description>Asynchronous, full-duplex, and lightweight TCP socket/client for .NET.</Description>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <Copyright>Copyright ©  2021</Copyright>
+    <Authors>Berkan YILDIZ</Authors>
+    <Company />
+    <PackageProjectUrl>https://github.com/BerkanYildiz/TcpSocket.NET</PackageProjectUrl>
+    <PackageReleaseNotes>Improving the overall code and removing the send thread, letting developers use an asynchronous function instead that doesn't require any queue'ing or synchronization, and supports cancellation.</PackageReleaseNotes>
+    <PackageTags>full duplex tcp network socket stream connection client server dual berkan yildiz berkanyildiz tcpsocket tcpsocket.net</PackageTags>
+    <RepositoryUrl>https://github.com/BerkanYildiz/TcpSocket.NET</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageIcon>icon.png</PackageIcon>
   </PropertyGroup>
-  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
-    <DebugSymbols>true</DebugSymbols>
-    <DebugType>full</DebugType>
-    <Optimize>false</Optimize>
-    <OutputPath>bin\Debug\</OutputPath>
-    <DefineConstants>DEBUG;TRACE</DefineConstants>
-    <ErrorReport>prompt</ErrorReport>
+
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
     <WarningLevel>1</WarningLevel>
+    <PlatformTarget>x64</PlatformTarget>
+    <OutputPath>Builds/Debug/</OutputPath>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <NoWarn>1701;1702;CA1416</NoWarn>
   </PropertyGroup>
-  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
-    <DebugType>pdbonly</DebugType>
-    <Optimize>true</Optimize>
-    <OutputPath>bin\Release\</OutputPath>
+
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
+    <PlatformTarget>x64</PlatformTarget>
+    <WarningLevel>1</WarningLevel>
     <DefineConstants>TRACE;RELEASE</DefineConstants>
-    <ErrorReport>prompt</ErrorReport>
-    <WarningLevel>1</WarningLevel>
+    <OutputPath>Builds/Release/</OutputPath>
+    <DebugType>none</DebugType>
+    <DebugSymbols>false</DebugSymbols>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <NoWarn>1701;1702;CA1416</NoWarn>
   </PropertyGroup>
+  
+  <Target Name="PostBuild" AfterTargets="PostBuildEvent">
+    <Exec Command="if &quot;$(ConfigurationName)&quot; == &quot;Release&quot; (&#xD;&#xA;  rem nuget pack $(ProjectPath) -OutputFileNamesWithoutVersion -OutputDir $(TargetDir) -SolutionDirectory $(SolutionDir) -NonInteractive -Properties Configuration=$(ConfigurationName)&#xD;&#xA;)" />
+  </Target>
+  
   <ItemGroup>
-    <Reference Include="System" />
-    <Reference Include="System.Core" />
+    <None Include="icon.png">
+      <Pack>True</Pack>
+      <PackagePath></PackagePath>
+    </None>
   </ItemGroup>
+  
   <ItemGroup>
-    <Compile Include="Events\TcpSocketBufferReceivedEventArgs.cs" />
-    <Compile Include="Events\TcpSocketBufferSentEventArgs.cs" />
-    <Compile Include="Events\TcpSocketConnectedEventArgs.cs" />
-    <Compile Include="Events\TcpSocketDisconnectedEventArgs.cs" />
-    <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="TcpMessage.cs" />
-    <Compile Include="TcpSocket.cs" />
-    <Compile Include="TcpSocketEvents.cs" />
-    <Compile Include="TcpSocketMethods.cs" />
-    <Compile Include="TcpSocketThreads.cs" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="5.0.0" />
   </ItemGroup>
-  <ItemGroup>
-    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions">
-      <Version>5.0.0</Version>
-    </PackageReference>
-    <PackageReference Include="System.Threading.Tasks.Extensions">
-      <Version>4.5.4</Version>
-    </PackageReference>
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="TcpSocket.nuspec" />
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="icon.png" />
-  </ItemGroup>
-  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
-  <PropertyGroup>
-    <PostBuildEvent>if "$(ConfigurationName)" == "Release" (
-  cd "$(TargetDir)"
-  "nuget.exe" pack "$(ProjectPath)" -Prop Configuration=$(ConfigurationName)
-)</PostBuildEvent>
-  </PropertyGroup>
+
 </Project>

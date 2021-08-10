@@ -71,7 +71,7 @@
 
             try
             {
-                await NetworkStream.WriteAsync(Buffer, 0, Buffer.Length, CancellationToken == default ? TimeoutSource?.Token ?? default : CancellationToken);
+                await NetworkStream.WriteAsync(Buffer, CancellationToken == default ? TimeoutSource?.Token ?? default : CancellationToken);
                 WasBufferSent = true;
             }
             catch (Exception Exception)

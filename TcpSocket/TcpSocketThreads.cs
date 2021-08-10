@@ -89,7 +89,7 @@
 
                 try
                 {
-                    NumberOfBytesRead = NetworkStream.Read(ReadBuffer, 0, ReadBuffer.Length);
+                    NumberOfBytesRead = NetworkStream.Read(ReadBuffer);
                 }
                 catch (IOException Exception)
                 {
