@@ -99,9 +99,8 @@
         /// Asynchronously try to connect to the given remote endpoint.
         /// </summary>
         /// <param name="Hostname">The hostname.</param>
-        /// <param name="Port">The port.</param>
         /// <returns>whether we successfully connected or not.</returns>
-        public async Task<bool> TryConnectAsync(string Hostname, int Port)
+        public async Task<bool> TryConnectAsync(EndPoint InEndPoint)
         {
             this.Logger?.Log(LogLevel.Trace, "The TcpSocket::TryConnectAsync(...) function has been executed.");
 
@@ -109,17 +108,8 @@
             // Verify the passed parameters.
             // 
 
-            if (string.IsNullOrEmpty(Hostname))
-            {
-                this.Logger?.Log(LogLevel.Error, "The hostname is null or empty.");
-                throw new ArgumentNullException(nameof(Hostname), "The hostname is null or empty.");
-            }
-
-            if (Port <= IPEndPoint.MinPort || Port > IPEndPoint.MaxPort)
-            {
-                this.Logger?.Log(LogLevel.Error, $"The port number is out of range. [Port: {Port}]");
-                throw new ArgumentException("The port number must be between 0 and 65535.", nameof(Port));
-            }
+            if (InEndPoint == null)
+                throw new ArgumentNullException(nameof(InEndPoint));
 
             // 
             // Are we already connected to a remote endpoint ?
@@ -135,12 +125,22 @@
             // Asynchronously attempt to connect to the server.
             // 
 
-            this.Logger?.Log(LogLevel.Information, $"Attempting to connect to {Hostname}:{Port}.");
+            this.Logger?.Log(LogLevel.Information, $"Attempting to connect to {InEndPoint}.");
             var Stopwatch = System.Diagnostics.Stopwatch.StartNew();
 
             try
             {
-                await this.TcpClient.ConnectAsync(Hostname, Port);
+                switch (InEndPoint)
+                {
+                    case IPEndPoint IPEndPoint:
+                        await this.TcpClient.ConnectAsync(IPEndPoint.Address, IPEndPoint.Port);
+                        break;
+                    case DnsEndPoint DnsEndPoint:
+                        await this.TcpClient.ConnectAsync(DnsEndPoint.Host, DnsEndPoint.Port);
+                        break;
+                    default:
+                        throw new ArgumentException("The remote endpoint is not a DnsEndPoint nor a IPEndPoint", nameof(InEndPoint));
+                }
             }
             catch (SocketException)
             {
