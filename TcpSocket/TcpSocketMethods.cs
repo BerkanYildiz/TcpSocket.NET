@@ -15,7 +15,7 @@
         /// <param name="Buffer">The buffer.</param>
         /// <param name="CancellationToken">The cancellation token.</param>
         /// <returns>Whether the buffer was sent or not.</returns>
-        public async ValueTask<bool> TrySendBufferAsync(byte[] Buffer, CancellationToken CancellationToken = default)
+        public async Task<bool> TrySendBufferAsync(byte[] Buffer, CancellationToken CancellationToken = default)
         {
             // 
             // Verify the passed parameter(s).

@@ -5,14 +5,14 @@
     <TargetFrameworks>netstandard2.0;net5.0</TargetFrameworks>
     <RootNamespace>TcpSocket</RootNamespace>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
-    <Version>1.1.5</Version>
+    <Version>1.1.6</Version>
     <Description>Asynchronous, full-duplex, and lightweight TCP socket/client for .NET.</Description>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <Copyright>Copyright ©  2021</Copyright>
     <Authors>Berkan YILDIZ</Authors>
     <Company />
     <PackageProjectUrl>https://github.com/BerkanYildiz/TcpSocket.NET</PackageProjectUrl>
-    <PackageReleaseNotes>Improving the overall code and removing the send thread, letting developers use an asynchronous function instead that doesn't require any queue'ing or synchronization, and supports cancellation.</PackageReleaseNotes>
+    <PackageReleaseNotes>Removing threading extensions dependency</PackageReleaseNotes>
     <PackageTags>full duplex tcp network socket stream connection client server dual berkan yildiz berkanyildiz tcpsocket tcpsocket.net</PackageTags>
     <RepositoryUrl>https://github.com/BerkanYildiz/TcpSocket.NET</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
@@ -43,7 +43,6 @@
   
   <ItemGroup>
     <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="5.0.0" />
-    <PackageReference Include="System.Threading.Tasks.Extensions" Version="4.5.4" />
   </ItemGroup>
 
 </Project>
