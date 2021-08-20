@@ -1,7 +1,6 @@
 ﻿namespace TcpSocket
 {
     using System;
-    using System.Threading;
 
     public class TcpMessage
     {
@@ -31,15 +30,6 @@
         }
 
         /// <summary>
-        /// Gets the event raised when this message will be completely sent to the server.
-        /// </summary>
-        public ManualResetEventSlim CompletionEvent
-        {
-            get;
-            internal set;
-        }
-
-        /// <summary>
         /// Initializes a new instance of the <see cref="TcpMessage"/> class.
         /// </summary>
         /// <param name="Buffer">The buffer.</param>
@@ -48,7 +38,6 @@
             this.Buffer = Buffer;
             this.Time = DateTime.UtcNow;
             this.WasMessageSent = false;
-            this.CompletionEvent = new ManualResetEventSlim(false);
         }
 
         /// <summary>

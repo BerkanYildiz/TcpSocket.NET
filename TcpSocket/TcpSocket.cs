@@ -23,9 +23,10 @@
         /// <summary>
         /// Gets the logger.
         /// </summary>
-        public ILogger Logger
+        private ILogger Logger
         {
             get;
+            set;
         }
 
         /// <summary>
@@ -37,9 +38,7 @@
             get
             {
                 if (this.IsDisconnecting)
-                {
                     return false;
-                }
 
                 return this.TcpClient?.Connected ?? false;
             }
@@ -72,12 +71,12 @@
         /// <param name="SendTimeout">The time limit in milliseconds to send a message before aborting.</param>
         /// <param name="NoDelay">Whether to immediately send the network data or wait for the buffer to fill a bit.</param>
         /// <param name="Logger">The logging handler instance used to print debug messages and traces.</param>
-        public TcpSocket(int ReceiveBufferSize = 8192, int SendBufferSize = 8192, int ReceiveTimeout = 0, int SendTimeout = 0, bool NoDelay = false, ILogger Logger = null)
+        public TcpSocket(int ReceiveBufferSize = 8192, int SendBufferSize = 8192, int ReceiveTimeout = 0, int SendTimeout = 0, bool NoDelay = false)
         {
             // 
             // Initialize the TCP client.
             // 
-
+            
             this.TcpClient = new TcpClient(AddressFamily.InterNetwork)
             {
                 ReceiveBufferSize = ReceiveBufferSize,
@@ -86,21 +85,32 @@
                 SendTimeout = SendTimeout,
                 NoDelay = NoDelay,
             };
+        }
 
+        /// <summary>
+        /// Sets the logger.
+        /// </summary>
+        /// <param name="InLogger">The logger.</param>
+        public void SetLogger(ILogger InLogger)
+        {
             // 
             // Initialize the logging handler.
             // 
 
-            this.Logger = Logger;
-            this.Logger?.Log(LogLevel.Trace, "The TcpSocket::TcpSocket(...) function has been executed.");
+            this.Logger = InLogger;
+            this.Logger?.Log(LogLevel.Trace, "The TcpSocket::SetLogger(...) function has been executed.");
         }
 
         /// <summary>
         /// Asynchronously try to connect to the given remote endpoint.
         /// </summary>
-        /// <param name="Hostname">The hostname.</param>
+        /// <param name="InEndPoint">The remote endpoint.</param>
         /// <returns>whether we successfully connected or not.</returns>
+        #if NET5_0
+        public async ValueTask<bool> TryConnectAsync(EndPoint InEndPoint)
+        #else
         public async Task<bool> TryConnectAsync(EndPoint InEndPoint)
+        #endif
         {
             this.Logger?.Log(LogLevel.Trace, "The TcpSocket::TryConnectAsync(...) function has been executed.");
 
@@ -130,22 +140,34 @@
 
             try
             {
-                switch (InEndPoint)
+                using (var CancellationTokenSource = new CancellationTokenSource(TimeSpan.FromSeconds(10)))
                 {
-                    case IPEndPoint IPEndPoint:
-                        await this.TcpClient.ConnectAsync(IPEndPoint.Address, IPEndPoint.Port);
-                        break;
-                    case DnsEndPoint DnsEndPoint:
-                        await this.TcpClient.ConnectAsync(DnsEndPoint.Host, DnsEndPoint.Port);
-                        break;
-                    default:
-                        throw new ArgumentException("The remote endpoint is not a DnsEndPoint nor a IPEndPoint", nameof(InEndPoint));
+                    switch (InEndPoint)
+                    {
+                        case IPEndPoint IpEndPoint:
+                            await Task.Run(() => this.TcpClient.ConnectAsync(IpEndPoint.Address, IpEndPoint.Port), CancellationTokenSource.Token);
+                            break;
+
+                        case DnsEndPoint DnsEndPoint:
+                            await Task.Run(() => this.TcpClient.ConnectAsync(DnsEndPoint.Host, DnsEndPoint.Port), CancellationTokenSource.Token);
+                            break;
+
+                        default:
+                            throw new ArgumentException("The remote endpoint is not a DnsEndPoint nor a IPEndPoint", nameof(InEndPoint));
+                    }
                 }
+                    
             }
             catch (SocketException)
             {
                 // 
                 // The client has failed to connect to the server.
+                // 
+            }
+            catch (TaskCanceledException)
+            {
+                // 
+                // The client has failed to connect in the timespan in has been given.
                 // 
             }
 
@@ -210,16 +232,14 @@
         /// </summary>
         public void Dispose()
         {
-            this.Logger?.Log(LogLevel.Information, $"Disposing the TcpClient and disconnecting from the server.");
+            this.Logger?.LogTrace($"Disposing the TcpClient and disconnecting from the server.");
 
             // 
             // Was this instance already disposed ?
             // 
 
             if (this.IsDisposed)
-            {
                 return;
-            }
 
             this.IsDisposed = true;
 

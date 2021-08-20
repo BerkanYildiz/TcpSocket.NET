@@ -2,17 +2,17 @@
 
   <PropertyGroup>
     <OutputType>Library</OutputType>
-    <TargetFrameworks>netstandard2.0;net5.0</TargetFrameworks>
+    <TargetFrameworks>netstandard2.0;net5.0;net4.8</TargetFrameworks>
     <RootNamespace>TcpSocket</RootNamespace>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
-    <Version>1.1.6</Version>
+    <Version>1.1.7</Version>
     <Description>Asynchronous, full-duplex, and lightweight TCP socket/client for .NET.</Description>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <Copyright>Copyright ©  2021</Copyright>
     <Authors>Berkan YILDIZ</Authors>
     <Company />
     <PackageProjectUrl>https://github.com/BerkanYildiz/TcpSocket.NET</PackageProjectUrl>
-    <PackageReleaseNotes>Removing threading extensions dependency</PackageReleaseNotes>
+    <PackageReleaseNotes></PackageReleaseNotes>
     <PackageTags>full duplex tcp network socket stream connection client server dual berkan yildiz berkanyildiz tcpsocket tcpsocket.net</PackageTags>
     <RepositoryUrl>https://github.com/BerkanYildiz/TcpSocket.NET</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
@@ -21,7 +21,6 @@
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
     <WarningLevel>1</WarningLevel>
-    <OutputPath>bin/Debug/</OutputPath>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <NoWarn>1701;1702;CA1416</NoWarn>
   </PropertyGroup>
@@ -29,9 +28,12 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
     <WarningLevel>1</WarningLevel>
     <DefineConstants>TRACE;RELEASE</DefineConstants>
-    <OutputPath>bin/Release/</OutputPath>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <NoWarn>1701;1702;CA1416</NoWarn>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(TargetFramework)|$(Platform)'=='Debug|netstandard2.0|AnyCPU'">
+    <DefineConstants>DEBUG;TRACE</DefineConstants>
   </PropertyGroup>
   
   <ItemGroup>
