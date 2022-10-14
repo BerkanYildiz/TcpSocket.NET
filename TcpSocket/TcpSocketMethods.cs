@@ -1,6 +1,7 @@
 ﻿namespace TcpSocket
 {
     using System;
+    using System.IO;
     using System.Net.Sockets;
     using System.Threading;
     using System.Threading.Tasks;
@@ -40,8 +41,9 @@
             // Retrieve the network stream.
             // 
             
-            var NetworkStream = (NetworkStream) null;
-            try { NetworkStream = this.TcpClient.GetStream(); } catch (Exception) { return false; }
+            var NetworkStream = (Stream) null;
+            if (this.SslNetworkStream != null) NetworkStream = this.SslNetworkStream;
+            else try { NetworkStream = this.TcpClient.GetStream(); } catch (Exception) { return false; }
 
             // 
             // If we have a timeout setup for write operations.

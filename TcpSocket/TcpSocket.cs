@@ -2,7 +2,9 @@
 {
     using System;
     using System.Net;
+    using System.Net.Security;
     using System.Net.Sockets;
+    using System.Security;
     using System.Threading;
     using System.Threading.Tasks;
 
@@ -48,7 +50,8 @@
         /// <param name="InReceiveTimeout">The time limit in milliseconds to receive a message before aborting.</param>
         /// <param name="InSendTimeout">The time limit in milliseconds to send a message before aborting.</param>
         /// <param name="InNoDelay">Whether to immediately send the network data or wait for the buffer to fill a bit.</param>
-        public TcpSocket(int InReceiveBufferSize = 8192, int InSendBufferSize = 8192, int InReceiveTimeout = 0, int InSendTimeout = 0, bool InNoDelay = false)
+        /// <param name="InSslConfig">The Ssl/Tls configuration for the network stream.</param>
+        public TcpSocket(int InReceiveBufferSize = 8192, int InSendBufferSize = 8192, int InReceiveTimeout = 0, int InSendTimeout = 0, bool InNoDelay = false, TcpSocketSslConfig InSslConfig = null)
         {
             // 
             // Initialize the TCP client.
@@ -62,6 +65,21 @@
                 SendTimeout = InSendTimeout,
                 NoDelay = InNoDelay,
             };
+
+            // 
+            // Setup the Ssl/Tls configuration.
+            // 
+
+            if (InSslConfig != null)
+            {
+                if (string.IsNullOrEmpty(InSslConfig.RemoteServerName))
+                    throw new ArgumentException("The RemoteServerName cannot be null or empty");
+
+                if (InSslConfig.RemoteCertificateValidationCallback == null)
+                    throw new ArgumentException("The RemoteCertificateValidationCallback cannot be null");
+
+                this.SslConfig = InSslConfig;
+            }
         }
 
         /// <summary>
@@ -133,6 +151,24 @@
             if (this.TcpClient.Connected)
             {
                 // 
+                // Ensure the stream is secure.
+                // 
+
+                if (this.SslConfig != null)
+                {
+                    this.SslNetworkStream = new SslStream(this.TcpClient.GetStream(), true, this.SslConfig.RemoteCertificateValidationCallback, this.SslConfig.LocalCertificateSelectionCallback, this.SslConfig.EncryptionPolicy);
+                    try { await this.SslNetworkStream.AuthenticateAsClientAsync(this.SslConfig.RemoteServerName, null, this.SslConfig.EnabledSslProtocols, false); } catch (Exception) { }
+
+                    if (!this.SslNetworkStream.IsAuthenticated || !this.SslNetworkStream.IsEncrypted)
+                    {
+                        this.SslNetworkStream.Dispose();
+                        this.SslNetworkStream = null;
+                        this.TcpClient.Dispose();
+                        throw new SecurityException("The secure network stream couldn't be authenticated or setup");
+                    }
+                }
+
+                // 
                 // Setup the thread that receives data from the server.
                 // 
 
@@ -158,10 +194,7 @@
                     {
                         this.OnSocketConnected.Invoke(this, new TcpSocketConnectedEventArgs(this.TcpClient.Client, this.TcpClient.Client.RemoteEndPoint));
                     }
-                    catch (Exception)
-                    {
-                        // ...
-                    }
+                    catch (Exception) { }
                 }
             }
 
@@ -240,6 +273,12 @@
             // 
 
             this.TcpClient?.Dispose();
+
+            // 
+            // Dispose the SslStream.
+            // 
+            
+            this.SslNetworkStream?.Dispose();
         }
     }
 }

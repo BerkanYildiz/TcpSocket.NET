@@ -37,11 +37,11 @@
                 // Retrieve the network stream.
                 // 
 
-                var NetworkStream = (NetworkStream) null;
+                var NetworkStream = (Stream) null;
 
                 try
                 {
-                    NetworkStream = this.TcpClient.GetStream();
+                    NetworkStream = this.SslNetworkStream != null ? (Stream) this.SslNetworkStream : (Stream) this.TcpClient.GetStream();
                 }
                 catch (InvalidOperationException)
                 {
@@ -56,7 +56,7 @@
                 // Receive data from the server.
                 // 
 
-                var NumberOfBytesRead = 0;
+                int NumberOfBytesRead;
 
                 try
                 {
