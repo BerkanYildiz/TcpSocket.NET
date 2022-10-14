@@ -42,7 +42,7 @@
             // Initialize a new TCP socket.
             // 
 
-            var TcpSocket = new TcpSocket(Logger: Logger);
+            var TcpSocket = new TcpSocket();
             TcpSocket.OnSocketConnected += OnSocketConnected;
             TcpSocket.OnSocketDisconnected += OnSocketDisconnected;
             TcpSocket.OnBufferReceived += OnBufferReceived;
@@ -54,50 +54,59 @@
                 // Connect to the server.
                 // 
 
-                await TcpSocket.TryConnectAsync("localhost", 6970);
+                var HasConnected = false;
+                try { HasConnected = await TcpSocket.TryConnectAsync(new IPEndPoint(IPAddress.Loopback, 6970)); } catch (Exception) { }
+
+                if (!HasConnected)
+                    Logger.LogError("Failed to connect to the server.");
 
                 // 
                 // Asynchronously spam the server.
                 // 
 
-                var SpamTasks = new Task[1];
-                var ShouldStopTasks = false;
-                var BufferToSend = new byte[128];
-
-                for (var I = 0; I < SpamTasks.Length; I++)
+                if (HasConnected)
                 {
-                    SpamTasks[I] = Task.Run(async () =>
+                    var SpamTasks = new Task[1];
+                    var ShouldStopTasks = false;
+                    var BufferToSend = new byte[128];
+
+                    for (var I = 0; I < SpamTasks.Length; I++)
                     {
-                        while (TcpSocket.IsConnected && !ShouldStopTasks)
+                        SpamTasks[I] = Task.Run(async () =>
                         {
-                            var HasSentMessage = await TcpSocket.TrySendBufferAsync(BufferToSend);
-
-                            if (HasSentMessage == false)
+                            while (TcpSocket.IsConnected && !Volatile.Read(ref ShouldStopTasks))
                             {
-                                Logger.LogError($"Failed to send a message during the while loop.");
+                                var HasSentMessage = await TcpSocket.TrySendBufferAsync(BufferToSend);
+
+                                if (HasSentMessage == false)
+                                {
+                                    Logger.LogError($"Failed to send a message during the while loop.");
+                                }
+
+                                await Task.Delay(250);
                             }
+                        });
+                    }
 
-                            await Task.Delay(250);
-                        }
-                    });
+                    // 
+                    // Wait.
+                    // 
+
+                    Console.ReadKey();
+
+                    // 
+                    // Wait for every tasks to finish.
+                    // 
+
+                    Volatile.Write(ref ShouldStopTasks, true);
+                    Task.WaitAll(SpamTasks);
+                    Logger.LogInformation("All tasks have been completed.");
                 }
-
-                // 
-                // Wait.
-                // 
-
-                Console.ReadKey();
-
-                // 
-                // Wait for every tasks to finish.
-                // 
-
-                ShouldStopTasks = true;
-                Task.WaitAll(SpamTasks);
-                Logger.LogTrace("Every tasks were terminated, disposing the TCP socket...");
+                
+                Logger.LogInformation("Disposing the TCP socket.");
             }
 
-            await Task.Delay(1500);
+            await Task.Delay(TimeSpan.FromSeconds(3));
         }
 
         /// <summary>
