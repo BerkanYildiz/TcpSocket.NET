@@ -1,0 +1,28 @@
+name: .NET
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v3
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v3
+      with:
+        dotnet-version: 6.0.x
+    - name: Restore dependencies
+      run: dotnet restore
+    - name: Build
+      run: dotnet build -c Release --no-restore
+    - name: Test
+      run: dotnet test -c Release --no-build --verbosity normal
+    - name: Authenticate
+      run: dotnet nuget add source --username ${{github.REPOSITORY_OWNER}} --password ${{ secrets.GITHUB_TOKEN }} --store-password-in-clear-text --name github "https://nuget.pkg.github.com/${{github.REPOSITORY_OWNER}}/index.json"
+    - name: Publish
+      run: dotnet nuget push **/*.nupkg --source "github" --skip-duplicate
