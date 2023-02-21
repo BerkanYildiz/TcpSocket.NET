@@ -2,13 +2,13 @@
 
   <PropertyGroup>
     <OutputType>Library</OutputType>
-    <TargetFrameworks>netstandard2.0;netstandard2.1;net6.0</TargetFrameworks>
+    <TargetFrameworks>netstandard2.0;netstandard2.1;net6.0;net7.0</TargetFrameworks>
     <RootNamespace>TcpSocket</RootNamespace>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
-    <Version>1.1.8</Version>
+    <Version>1.1.9</Version>
     <Description>Asynchronous, full-duplex, and lightweight TCP socket/client for .NET.</Description>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
-    <Copyright>Copyright ©  2022</Copyright>
+    <Copyright>Copyright ©  2023</Copyright>
     <Authors>Berkan YILDIZ</Authors>
     <PackageProjectUrl>https://github.com/BerkanYildiz/TcpSocket.NET</PackageProjectUrl>
     <PackageReleaseNotes></PackageReleaseNotes>
